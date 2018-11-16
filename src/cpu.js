@@ -28,13 +28,15 @@
 */
 const memory = new ArrayBuffer(0x1000);
 let chip8 = {
+  memory: new Uint8Array(memory), // chip-8 ram total of 4kb
   step: null,
   running: null,
   renderer: null,
 
-
-  memory: new Uint8Array(memory), // chip-8 ram total of 4kb
-  index: null, //index register 16-bit
+  display: new Array(2048),
+  index: null,
+  keys: {},
+  keyState: undefined, //index register 16-bit
   pc: null, // The program Counter 16-bit
   stack:  new Array(16),
   sp: null,
@@ -42,20 +44,41 @@ let chip8 = {
   delayTimer: null,
   soundtimer: null,
 
-  display: new Array(2048),
-
   reset: undefined, //resets chip-8 to default state
 }
 
-chip8.reset = () => {
-  for (let i = 0; i < chip8.memory.length; i++) {
-    chip8.memory[i] = 0;
+chip8.prototype = {
+  bindkey: (key) => {
+    chip8.keys[key] = true;
+  },
+  keyState: (key, pressed) => {
+
+  },
+  loadProgram: () => {
+    for (let i = 0; i < program.length; i++) {
+      chip8.memory[i + 0x200] = program[i];
+    }
+  },
+
+  unbindKey: (key) => {
+    chip8.keys[key] = null;
   }
-  chip8.index = 0;
-  chip8.pc = 0;
-  chip8.stack = new Array(16);
-  chip8.sp = 0;
-  chip8.v =  new Array(16);
-  chip8.delayTimer = 0;
-  chip8.soundtimer = 0;
 }
+  chip8.reset: () => {
+    for (let i = 0; i < chip8.memory.length; i++) {
+      chip8.memory[i] = 0;
+    }
+    chip8.index = 0;
+    chip8.pc = 0;
+    chip8.stack = new Array(16);
+    chip8.sp = 0;
+    chip8.v =  new Array(16);
+    chip8.delayTimer = 0;
+    chip8.soundtimer = 0;
+  }
+
+
+
+
+
+
