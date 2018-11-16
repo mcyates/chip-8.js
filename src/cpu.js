@@ -64,7 +64,7 @@ chip8.prototype = {
     chip8.keys[key] = null;
   }
 }
-  chip8.reset: () => {
+  chip8.reset = () => {
     for (let i = 0; i < chip8.memory.length; i++) {
       chip8.memory[i] = 0;
     }
