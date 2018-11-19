@@ -1,0 +1,23 @@
+{
+  "name": "chip-8",
+  "version": "1.0.0",
+  "description": "A chip-8 interpreter implemented in javascript",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/M-C-Yates/chip-8.js.git"
+  },
+  "author": "Matthew Yates",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/M-C-Yates/chip-8.js/issues"
+  },
+  "homepage": "https://github.com/M-C-Yates/chip-8.js#readme",
+  "devDependencies": {
+    "webpack": "^4.26.0",
+    "webpack-cli": "^3.1.2"
+  }
+}
