@@ -5,4 +5,7 @@ export default class utility {
     }
     return array
   }
+  static rng = () => {
+    return Math.random()*256|0;
+  }
 }
