@@ -23,6 +23,8 @@ export class Display  {
   }
   draw = (buffer) => {
     const canvas = this.canvas.getContext('2d');
+    const pixelWidth = this.canvas.width / (this.width + this.width * this.padding);
+    const pixelHeight = this.canvas.height / (this.height + this.height * this.padding);
     
   }
 }
