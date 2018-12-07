@@ -118,6 +118,10 @@ export default class Cpu {
     this.vReg = new Uint8Array(0x10);
     this.waitingForInput = -1;
   }
+  CPU = (randomNumberGenerator) => {
+    this.rng = randomNumberGenerator || utility.rng();
+    this.reset()
+  }
 
   cycle = () => {
     this.opcode = (this.memory[this.pc] << 8) | this.memory[this.pc + 1];
@@ -223,7 +227,7 @@ export default class Cpu {
         this.pc = this.nnn + this.vReg[0x0];
         break;
       case 0xc000:
-        this.vReg[this.vx] = utility.rng() & this.nn;
+        this.vReg[this.vx] = this.rng.next() & this.nn;
         break;
       case 0xd000:
         this.vReg[this.carry] = this.draw(
