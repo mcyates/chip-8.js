@@ -1,11 +1,14 @@
-import Cpu from "./cpu";
-class Chip8 {
-  constructor() {
-    this.cpu = new Cpu();
-  }
-  start = () => {
+import Chip8 from './chip8/chip8';
 
+const chip8 = new Chip8();
+
+chip8.popSelect(chip8.romSelector)
+
+chip8.romSelector.addEventListener('change',(e) => {
+  if (e.target.value != "") {
+    chip8.loadRom(e.target.value);
+    romSelector.blur();
+    canvas.focus();
   }
-}
-chip8.cpu.load([0x1, 0x0, 0x1]);
-console.log(chip8.cpu.programStart);
+})
+
