@@ -46,5 +46,6 @@ export default class Chip8 {
       option.value = option.innerHTML = rom;
       el.appendChild(option);
     }
+
   }
 }
