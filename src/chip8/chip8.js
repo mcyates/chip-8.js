@@ -1,7 +1,7 @@
-
-
+import Cpu from './cpu';
 export default class Chip8 {
   constructor() {
+    this.cpu = new Cpu()
     this.roms = [
     "15PUZZLE",
     "BLINKY",
@@ -31,12 +31,14 @@ export default class Chip8 {
     this.romSelector = document.getElementById('rom_selector');
   }
 
-  loadRom = (rom) => {
-    let request = new XMLHttpRequest;
-    request.onload = () => {
-      // if (request.response)
-      console.log(request.response)
-    }
+  loadRom = (name) => {
+    return fetch(`../roms/${name}`)
+    .then(res => res.arrayBuffer())
+    .then(data => {
+      let rom = new Uint8Array(data);
+      // return rom
+      chip = this.cpu.loadRom(this.reset())
+    })
   }
   // populates the romSelector with roms
   popSelect = (el) => {

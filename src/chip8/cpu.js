@@ -1,6 +1,6 @@
 
 
-export default class chip8 {
+export default class Cpu {
   constructor() {
 
   }

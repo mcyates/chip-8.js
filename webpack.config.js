@@ -13,6 +13,9 @@ module.exports = {
       filename: "main.css"
     })
   ],
+  node: {
+    fs: "empty"
+  },
   module: {
     rules: [{
       loader: 'babel-loader',
