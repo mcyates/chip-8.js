@@ -11,9 +11,9 @@ chip8.romSelector.addEventListener('change',(e) => {
   if (e.target.value != "") {
     
     Rom = chip8.loadRom(e.target.value);
-    Rom.then(data => {
-      // console.log(disassembler(data))
-    })
+    // Rom.then(data => {
+    //   // console.log(disassembler(data))
+    // })
   }
 }, false);
 
@@ -23,4 +23,5 @@ const dissambler = async () => {
   console.log(Rom)
 }
 
-console.log(hexdump('BLITZ'));
+let hex = hexdump('INVADERS')
+console.log(hex)
