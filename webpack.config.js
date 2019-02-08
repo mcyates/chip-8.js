@@ -1,5 +1,6 @@
 const path = require('path');
 const webpack = require('webpack');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 module.exports = {
@@ -11,7 +12,12 @@ module.exports = {
   plugins: [
     new MiniCssExtractPlugin({
       filename: "main.css"
-    })
+    },
+    new CopyWebpackPlugin([{
+    from: 'src/roms',
+    to: 'public/roms',
+    toType: 'dir'
+    }]))
   ],
   node: {
     fs: "empty"
@@ -39,7 +45,7 @@ module.exports = {
           }
         }
       ]
-    }]
+    } ]
   },
   devtool: 'inline-source-map',
   devServer: {

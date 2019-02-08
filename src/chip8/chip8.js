@@ -31,13 +31,13 @@ export default class Chip8 {
     this.romSelector = document.getElementById('rom_selector');
   }
 
-  loadRom = (name) => {
-    return fetch(`../roms/${name}`)
+  loadRom = async (name) => {
+    return await fetch(`./roms/${name}`)
     .then(res => res.arrayBuffer())
     .then(data => {
       let rom = new Uint8Array(data);
-      // return rom
-      chip = this.cpu.loadRom(this.reset())
+      return rom
+      // chip = this.cpu.loadRom(this.reset())
     })
   }
   // populates the romSelector with roms

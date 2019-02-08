@@ -6,6 +6,8 @@
   "scripts": {
     "start": "webpack-dev-server --inline --mode development",
     "build:dev": "webpack -d --progress --colors",
+    "test": "jest",
+    "test-init": "jest --init",
     "build:prod": "webpack -p --env production"
   },
   "repository": {
@@ -25,6 +27,8 @@
     "@babel/polyfill": "^7.2.5",
     "@babel/preset-env": "^7.1.6",
     "babel-loader": "^8.0.4",
+    "copy-webpack-plugin": "^4.6.0",
+    "jest": "^24.1.0",
     "mini-css-extract-plugin": "^0.5.0",
     "style-loader": "^0.23.1",
     "webpack": "^4.26.0",
@@ -33,9 +37,8 @@
   },
   "dependencies": {
     "css-loader": "^2.1.0",
-    "file-saver": "^2.0.0",
+    "hexdump-js": "^0.1.0",
     "node-sass": "^4.11.0",
-    "sass-loader": "^7.1.0",
-    "seedrandom": "^2.4.4"
+    "sass-loader": "^7.1.0"
   }
 }
