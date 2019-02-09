@@ -38,8 +38,10 @@ export default class Cpu {
     };
     this.memory = new Uint8Array(0x1000);
     this.pc = 0x200;
-    this.iR = 0;
+    this.i = 0x000;
     this.display = this.setArray(new Array(0x800), false);
+    this.displayHeight = 32;
+    this.displayWidth = 64;
     this.input = this.setArray(new Array(0x10), false);
     this.v = new Uint8Array(0x10);
     this.delayTimer = 0;
@@ -53,7 +55,7 @@ export default class Cpu {
   loadRom = rom => {
     let length = rom.length;
     for (let i = 0; i < program.length; i++) {
-      this.memory[0x200 + i] = rom[i];
+      this.memory[0x200 + i] = rom[i].toLowerCase();
     }
   };
   run = () => {
@@ -185,11 +187,50 @@ export default class Cpu {
             break;
           case 0x000e:
             //  SHL v[x], v[y] set v[x] = v[x] shl 1
-            this.v[0xf] = this.v[this.x] & 0x80;
-            this.v[this.x] = this.v[this.x] << 1;
+            this.v[0xf] = +(this.v[this.x] & 0x80);
+            this.v[this.x] <<= 1;
+            if (this.v[this.x] > 255) {
+                this.v[this.x] -= 256;
+            }
             break;
         }
         break;
+      case 0x9000:
+        // SNE v[x], v[y] Skip next instruction if v[x] is not equal to v[y];
+        if (this.v[this.x] !== this.v[this.y]) {
+          this.pc += 2;
+        }
+        break;
+      case 0xa000:
+        // LD i, nnn Annn i = nnn
+        this.i = this.nnn;
+        break;
+      case 0xb000:
+        // JP V0, nnn Bnnn jump to location v0 + nnn
+        this.pc = (this.nnn + this.v[0]);
+        break;
+      case 0xc000:
+        // RND Vx, byte CXNN set Vx =  random byte & nnn
+        this.v[this.x] = Math.floor(Math.random() * 0xff) & this.nnn;
+        break;
+      case 0xd000:
+        // DRW Vx, Vy, n DXYN display n-byte sprite at memory location i at (Vx, Vy),
+        // set Vf = collison
+        this.v[0xf] = 0;
+        let height = this.n;
+        let vX = this.v[this.x];
+        let vY = this.v[this.y];
+        for (let y = 0; y < height; y++) {
+          let sprite = this.memory[this.i + y];
+          for (let x = 0; x < 8; x++) {
+            if ((sprite & 0x80) > 0) {
+              if (this.setPixel(vX + x, vY + y)) {
+                this.v[0xf] = 1;
+              }
+            }
+            sprite = sprite << 1;
+          }
+        }
     }
 
   };
@@ -232,4 +273,27 @@ export default class Cpu {
     }
     return array;
   };
-}
+  setPixel = (x, y) => {
+    let width = this.displayWidth;
+    let height = this.displayHeight;
+
+    // wrap pixel around if it leaves border of screen;
+    if (x > width) {
+      x -= width;
+    } else if (x < 0) {
+      x += width;
+    }
+
+    if (y > height) {
+      y -= height;
+    } else if (y < 0) {
+      y += height;
+    }
+
+    let location = x + (y * width);
+    this.display[location] ^= 1;
+    return !this.display[location];
+  };
+
+
+};
