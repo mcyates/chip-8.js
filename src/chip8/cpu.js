@@ -109,19 +109,19 @@ export default class Cpu {
       case 0x3000:
         // SE Vx, byte 3xkk skip next instruction if V[x] = nn
         if (this.v[this.x] === this.nn) {
-          this.pc += 2;
+          this.pc += 4;
         } 
         break;
       case 0x4000:
         // SNE Vx, byte 4xkk compare v[x] to nn advance pc if not equal
         if (this.v[this.x] !== this.nn) {
-          this.pc += 2;
+          this.pc += 4;
         }
         break;
       case 0x5000:
       // SE V[x], V[y] 5xy0 compare v[x] to v[y] advance pc if equal
         if (this.v[this.x] === this.v[this.y]) {
-          this.pc += 2;
+          this.pc += 4;
         }
         break;
       case 0x6000:
@@ -198,7 +198,7 @@ export default class Cpu {
       case 0x9000:
         // SNE v[x], v[y] Skip next instruction if v[x] is not equal to v[y];
         if (this.v[this.x] !== this.v[this.y]) {
-          this.pc += 2;
+          this.pc += 4;
         }
         break;
       case 0xa000:
@@ -231,6 +231,26 @@ export default class Cpu {
             sprite = sprite << 1;
           }
         }
+        break;
+        case 0xe000:
+          switch(this.nn) {
+            case 0x009e:
+              // SKP Vx ex9e  skip next instruction if key with val of vx is pressed;
+              if (this.pressed(this.v[this.x])) {
+                this.pc += 4;
+              }
+              break;
+            case 0x00a1:
+              // SKNP Vx exa1 skip next instruction if key with val of Vx is not pressed
+              if (!this.pressed(this.v[this.x])) {
+                this.pc += 4;
+              }
+              break;
+          }
+        break;
+        case 0xf000:
+        // 
+        break;
     }
 
   };
@@ -247,11 +267,35 @@ export default class Cpu {
     }
   }
 
+  keyInput = (document) => {
+    document.addEventListener('keydown', (e) => {
+      let index = this.keyMap[e.keycode];
+      if (typeof index != 'undefined') {
+        this.input[index] = true;
+      }
+    });
+    document.addEventListener('keyup', (e) => {
+      let index = this.keyMap[e.keycode];
+      if (typeof index != 'undefined') {
+        this.input[index] = false;
+      }     
+    });
+  }
+
   loadFont = () => {
     for (let i = 0; i < this.fontSet.length; i++) {
       this.memory[i] = this.fontSet[i];
     }
   };
+  pressed = () => {
+    let pressed = [];
+    for (let i = 0; i < this.input.length; i++) {
+      if (this.input[i]) {
+        pressed.push(i);
+      }
+    }
+    return pressed;
+  }
 
   reset = () => {
     this.delayTimer = 0;

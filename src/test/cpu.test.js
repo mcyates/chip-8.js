@@ -72,20 +72,20 @@ test("CAll should set pc to = nnn", () => {
 test("SE Vx, byte should increment pc if Vx === nn", () => {
   cpu.v[5] = 0x0003;
   cpu.cycle(0x3503);
-  expect(cpu.pc).toEqual(0x202);
+  expect(cpu.pc).toEqual(0x204);
 });
 
 test("SNE Vx, byte should increment pc if Vx !== nn", () => {
   cpu.v[3] = 0x0004;
   cpu.cycle(0x4333);
-  expect(cpu.pc).toEqual(0x202);
+  expect(cpu.pc).toEqual(0x204);
 });
 
 test("SE Vx, Vy should increment pc if Vx === Vy", () => {
   cpu.v[4] = 3;
   cpu.v[5] = 3;
   cpu.cycle(0x5450);
-  expect(cpu.pc).toEqual(0x202);
+  expect(cpu.pc).toEqual(0x204);
 });
 
 test("LD vX should put nn into vX", () => {
@@ -271,7 +271,7 @@ describe("9xy0", () => {
     cpu.v[1] = 2;
     cpu.v[2] = 3;
     cpu.cycle(0x9120);
-    expect(cpu.pc).toEqual(0x202);
+    expect(cpu.pc).toEqual(0x204);
   });
   test("if vx === vy don't increment pc", () => {
     cpu.v[1] = 2;
@@ -359,4 +359,51 @@ describe("DXYN", () => {
     cpu.cycle(0xd121);
     expect(cpu.v[0xf]).toEqual(0)
   });
+});
+
+describe('EX9E', () => {
+  test('skips next instruct if key in Vx is pressed', () => {
+    cpu.v[1] = 5;
+    cpu.pressed = (key) => {
+      expect(key).toEqual(5);
+      return true;
+    }
+    cpu.cycle(0xe19e);
+    expect(cpu.pc).toEqual(0x204);
+  });
+  test('shouldn\'t skip if the key is not pressed.', () => {
+    cpu.v[2] = 6;
+    cpu.pressed = (key) => {
+      expect(key).toEqual(6);
+      return false;
+    }
+    cpu.cycle(0xe29e);
+    expect(cpu.pc).toEqual(0x200);
+  });
+});
+
+describe('exa1', () => {
+  test("skips the next instruction if the key stored in VX isn't pressed", function() {
+    cpu.v[3] = 7;
+
+    cpu.pressed = (key) => {
+      expect(key).toEqual(7);
+      return false;
+    }
+
+    cpu.cycle(0xe3a1);
+    expect(cpu.pc).toEqual(0x204);
+  });
+
+  test("doesn't skip the next instruction if the key stored in VX is pressed", function() {
+    cpu.v[4] = 8;
+
+    cpu.pressed = (key) => {
+      expect(key).toEqual(8);
+      return true;
+    }
+
+    cpu.cycle(0xe4a1);
+    expect(cpu.pc).toEqual(0x200);
+});
 });
