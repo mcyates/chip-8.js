@@ -397,7 +397,6 @@ describe('exa1', () => {
 
   test("doesn't skip the next instruction if the key stored in VX is pressed", function() {
     cpu.v[4] = 8;
-
     cpu.pressed = (key) => {
       expect(key).toEqual(8);
       return true;
@@ -405,5 +404,70 @@ describe('exa1', () => {
 
     cpu.cycle(0xe4a1);
     expect(cpu.pc).toEqual(0x200);
+  });
 });
+describe('F000', () => {
+  test('FX07', () => {
+    cpu.delayTimer = 30;
+    cpu.cycle(0xf307);
+    expect(cpu.v[3]).toEqual(30);
+  });
+
+  test('Fx0a', () => {
+    cpu.input[1] = true;
+    cpu.cycle(0xf10a);
+    expect(cpu.paused).toEqual(1);
+  });
+  test('FX15', () => {
+    cpu.v[2] = 0xf;
+    cpu.cycle(0xf215);
+    expect(cpu.delayTimer).toEqual(0xf);
+  }); 
+  test('Fx18', () => {
+    cpu.v[cpu.x] = 0xf;
+    cpu.cycle(0xf218);
+    expect(cpu.soundTimer).toEqual(0xf);
+  });
+  test('Fx29', () => {
+    cpu.v[1] = 1;
+    cpu.cycle(0xf129);
+    expect(cpu.i).toEqual(5);
+  });
+  test('Fx33', () => {
+    cpu.v[1] = 198;
+    cpu.cycle(0xf133);
+    expect(cpu.memory[0]).toEqual(1);
+    expect(cpu.memory[1]).toEqual(9);
+    expect(cpu.memory[2]).toEqual(8);
+  });
+  test('Fx55', () => {
+    cpu.v[0x0] = 0x00;
+    cpu.v[0x1] = 0x10;
+    cpu.v[0x2] = 0x20;
+    cpu.v[0x3] = 0x30;
+    cpu.i = 5;
+    cpu.cycle(0xf355);
+    expect(cpu.memory[0x0 + 5]).toEqual(0x00);
+    expect(cpu.memory[0x1 + 5]).toEqual(0x10);
+    expect(cpu.memory[0x2 + 5]).toEqual(0x20);
+    expect(cpu.memory[0x3 + 5]).toEqual(0x30);
+  });
+  test('Fx65', () => {
+    cpu.i = 6;
+    cpu.memory[cpu.i + 0x0] = 0x00;
+    cpu.memory[cpu.i + 0x1] = 0x10;
+    cpu.memory[cpu.i + 0x2] = 0x20;
+    cpu.memory[cpu.i + 0x3] = 0x30;
+    cpu.cycle(0xf365);
+    expect(cpu.v[0]).toEqual(0x00);
+    expect(cpu.v[1]).toEqual(0x10);
+    expect(cpu.v[2]).toEqual(0x20);
+    expect(cpu.v[3]).toEqual(0x30);
+  });
+  test('Fx1e', () => {
+    cpu.i = 5;
+    cpu.v[1] = 3;
+    cpu.cycle(0xf11e);
+    expect(cpu.i).toEqual(8);
+  });
 });
