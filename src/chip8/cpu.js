@@ -22,7 +22,7 @@ export default class Cpu {
       49: 0x1,
       50: 0x2,
       51: 0x3,
-      52: 0xc,
+      52: 0x12,
       81: 0x4,
       87: 0x5,
       69: 0x6,
@@ -60,7 +60,12 @@ export default class Cpu {
   };
   run = () => {
     for (let i = 0; i < this.speed; ++i) {
-      if (!this.paused) {
+      if (this.paused >= 0) {
+        let pressed = this.pressed();
+        if (pressed.length > 0) {
+          this.v[this.paused] = pressed[0];
+          this.paused - -1
+        }
         this.opcode = (this.memory[this.pc] << 8) | this.memory[this.pc + 1];
         this.cycle(this.opcode);
         this.pc += 2;
@@ -109,19 +114,19 @@ export default class Cpu {
       case 0x3000:
         // SE Vx, byte 3xkk skip next instruction if V[x] = nn
         if (this.v[this.x] === this.nn) {
-          this.pc += 2;
+          this.pc += 4;
         } 
         break;
       case 0x4000:
         // SNE Vx, byte 4xkk compare v[x] to nn advance pc if not equal
         if (this.v[this.x] !== this.nn) {
-          this.pc += 2;
+          this.pc += 4;
         }
         break;
       case 0x5000:
       // SE V[x], V[y] 5xy0 compare v[x] to v[y] advance pc if equal
         if (this.v[this.x] === this.v[this.y]) {
-          this.pc += 2;
+          this.pc += 4;
         }
         break;
       case 0x6000:
@@ -198,7 +203,7 @@ export default class Cpu {
       case 0x9000:
         // SNE v[x], v[y] Skip next instruction if v[x] is not equal to v[y];
         if (this.v[this.x] !== this.v[this.y]) {
-          this.pc += 2;
+          this.pc += 4;
         }
         break;
       case 0xa000:
@@ -231,6 +236,69 @@ export default class Cpu {
             sprite = sprite << 1;
           }
         }
+        break;
+        case 0xe000:
+          switch(this.nn) {
+            case 0x009e:
+              // SKP Vx ex9e  skip next instruction if key with val of vx is pressed;
+              if (this.pressed(this.v[this.x])) {
+                this.pc += 4;
+              }
+              break;
+            case 0x00a1:
+              // SKNP Vx exa1 skip next instruction if key with val of Vx is not pressed
+              if (!this.pressed(this.v[this.x])) {
+                this.pc += 4;
+              }
+              break;
+          }
+        break;
+        case 0xf000:
+          switch (opcode & this.nn) {
+            case 0x0007:
+              // LD Vx DT set vx = delayTimer
+              this.v[this.x] = this.delayTimer;
+              break;
+            case 0x000a:
+              // LD Vx, k Fx0a wait for a keypress then store in Vx
+              this.paused = this.x
+              break;
+            case 0x0015:
+              // LD DT, Vx fx15 set delayTimer = Vx
+              this.delayTimer = this.v[this.x];
+              break;
+            case 0x0018:
+              // LD ST, Vx set soundTimer = Vx
+              this.soundTimer = this.v[this.x];
+              break;
+            case 0x0029:
+              // LD f, Vx fx29 set i = location of sprite for digit Vx;
+              this.i = this.v[this.x] * 5;
+              break;
+            case 0x0033:
+              // LD B, Vx Fx33 store bcd representation of Vx in memory[i];
+              this.memory[this.i] = parseInt(this.v[this.x] / 100);
+              this.memory[this.i + 1] = parseInt(this.v[this.x] % 100 / 10);
+              this.memory[this.i + 2] = this.v[this.x] % 10;
+              break;
+            case 0x0055:
+              // LD [i], Vx Fx55 store all vReg in memory starting at i
+              for (let j = 0; j <= this.x; j++) {
+                this.memory[this.i + j] = this.v[j];
+              }
+              break;
+            case 0x0065:
+              // LD Vx, [i] Fx65 read all vReg from memory[i]
+              for (let j = 0; j <= this.x; j++) {
+                this.v[j] = this.memory[this.i + j];
+              }
+              break;
+            case 0x001e:
+              // ADD I, Vx fx1e set i = i + Vx
+              this.i += this.v[this.x];
+              break;
+          }
+        break;
     }
 
   };
@@ -247,22 +315,47 @@ export default class Cpu {
     }
   }
 
+  keyInput = (document) => {
+    document.addEventListener('keydown', (e) => {
+      let index = this.keyMap[e.keycode];
+      if (typeof index != 'undefined') {
+        this.input[index] = true;
+      }
+    });
+    document.addEventListener('keyup', (e) => {
+      let index = this.keyMap[e.keycode];
+      if (typeof index != 'undefined') {
+        this.input[index] = false;
+      }     
+    });
+  }
+
   loadFont = () => {
     for (let i = 0; i < this.fontSet.length; i++) {
       this.memory[i] = this.fontSet[i];
     }
   };
+  pressed = () => {
+    let pressed = [];
+    for (let i = 0; i < this.input.length; i++) {
+      if (this.input[i]) {
+        pressed.push(i);
+      }
+    }
+    return pressed;
+  }
 
   reset = () => {
     this.delayTimer = 0;
     this.displayReset();
-    this.iR = 0;
+    this.i = 0;
+    this.inputReset();
     this.memory = new Uint8Array(0x1000);
     this.pc = 0x200;
     this.soundTimer = 0;
     this.sp = 0;
     this.stack = new Array(0x10);
-    this.vR = new Uint8Array(0x10);
+    this.v = new Uint8Array(0x10);
     this.paused = 0;
     this.loadFont();
   };
