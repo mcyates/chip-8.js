@@ -18,26 +18,11 @@ export default class Cpu {
       0xf0, 0x80, 0xf0, 0x80, 0xf0, // E
       0xf0, 0x80, 0xf0, 0x80, 0x80 // F
     ]);
-    this.keyMap = {
-      49: 0x1,
-      50: 0x2,
-      51: 0x3,
-      52: 0x12,
-      81: 0x4,
-      87: 0x5,
-      69: 0x6,
-      82: 0x13,
-      65: 0x7,
-      83: 0x8,
-      68: 0x9,
-      70: 0x14,
-      90: 0x10,
-      88: 0x0,
-      67: 0x11,
-      86: 0x15
-    };
-    this.memory = new Uint8Array(0x1000);
+
+    this.memBuffer = new ArrayBuffer(0x1000);
+    this.memory = new Uint8Array(this.memBuffer);
     this.pc = 0x200;
+    this.pStart = 0x200;
     this.i = 0x000;
     this.display = this.setArray(new Array(0x800), false);
     this.displayHeight = 32;
@@ -46,34 +31,43 @@ export default class Cpu {
     this.v = new Uint8Array(0x10);
     this.delayTimer = 0;
     this.soundTimer = 0;
+    this.randomNG = this.rng()
     this.stack = new Array(0x10);
     this.sp = 0;
-    this.paused = 0;
+    this.paused = -1;
     this.speed = 10;
   }
 
   loadRom = rom => {
-    let length = rom.length;
-    for (let i = 0; i < program.length; i++) {
-      this.memory[0x200 + i] = rom[i].toLowerCase();
-    }
+    this.memory.set(rom, 0x200);
   };
   run = () => {
-    for (let i = 0; i < this.speed; ++i) {
       if (this.paused >= 0) {
         let pressed = this.pressed();
         if (pressed.length > 0) {
           this.v[this.paused] = pressed[0];
-          this.paused - -1
+          this.paused = -1;
         }
-        this.opcode = (this.memory[this.pc] << 8) | this.memory[this.pc + 1];
-        this.cycle(this.opcode);
-        this.pc += 2;
       }
-    }
+      this.opcode = (this.memory[this.pc] << 8) | this.memory[this.pc + 1];
+      this.cycle(this.opcode);
+      // console.log((this.opcode).toString(16))
+      this.pc += 2;
   };
-
-  cycle = opcode => {
+  getDisplayBuffer = () => {
+    return this.display;
+  }
+  setInputState = (state) => {
+    this.input = state;
+  }
+  updateTimers = () => {
+    this.delayTimer = Math.max(0, this.delayTimer - 1);
+    this.soundTimer = Math.max(0, this.soundTimer - 1);
+  }
+  rng = () => {
+    return new Uint8Array([Math.floor(Math.random() & 256)])[0]
+  }
+  cycle = (opcode) => {
     // get the 12 lowest bits of opcode
     this.nnn = opcode & 0x0fff;
     //get the 8 lowest bits of opcode
@@ -114,19 +108,19 @@ export default class Cpu {
       case 0x3000:
         // SE Vx, byte 3xkk skip next instruction if V[x] = nn
         if (this.v[this.x] === this.nn) {
-          this.pc += 4;
+          this.pc += 2;
         } 
         break;
       case 0x4000:
         // SNE Vx, byte 4xkk compare v[x] to nn advance pc if not equal
         if (this.v[this.x] !== this.nn) {
-          this.pc += 4;
+          this.pc += 2;
         }
         break;
       case 0x5000:
       // SE V[x], V[y] 5xy0 compare v[x] to v[y] advance pc if equal
         if (this.v[this.x] === this.v[this.y]) {
-          this.pc += 4;
+          this.pc += 2;
         }
         break;
       case 0x6000:
@@ -135,7 +129,7 @@ export default class Cpu {
         break;
       case 0x7000:
         // ADD v[x], Byte add nn + v[x] to v[x]
-        this.v[this.x] = this.v[this.x] + this.nn;
+        this.v[this.x] += this.nn;
         break;
       case 0x8000:
         switch (opcode & 0x000f) {
@@ -158,22 +152,13 @@ export default class Cpu {
           case 0x0004:
             // ADD v[x], v[y] 8xy4 v[x] + v[y] if result > 255 v[f] = 1 else 0
             // lowest 8-bits are then stored in v[x];
-            let sum = this.v[this.x] + this.v[this.y];
-            if (sum > 0xff) {
-              this.v[0xf] = 1;
-            } else {
-              this.v[0xf] = 0;
-            }
-            this.v[this.x] = sum;
+            this.v[0xf] = this.v[this.x] + this.v[this.y] > 255 ? 1 : 0;
+            this.v[this.x] += this.v[this.y];
             break;
           case 0x0005:
             // SUB v[x], v[y] 8xy5 v[x] = v[x] - v[y]
-            if (this.v[this.x] > this.v[this.y]) {
-              this.v[0xf] = 1;
-            } else {
-              this.v[0xf] = 0;
-            }
-            this.v[this.x] = this.v[this.x] - this.v[this.y];
+            this.v[0xf] = this.v[this.x] - this.v[this.y] < 0 ? 0 : 1;
+            this.v[this.x] -= this.v[this.x] >> 1;
             break;
           case 0x0006:
             // SHR v[x], v[y] 8xy6 divide v[x] \ 2
@@ -183,20 +168,13 @@ export default class Cpu {
             break;
           case 0x0007:
             // SUB v[x], v[y] 8xy7 v[x] = v[y] - v[x]
-            if (this.v[this.x] > this.v[this.y]) {
-              this.v[0xf] = 0;
-            } else {
-              this.v[0xf] = 1;
-            }
+            this.v[0xf] = this.v[this.y] - this.v[this.x] < 0 ? 0 : 1;
             this.v[this.x] = this.v[this.y] - this.v[this.x];
             break;
           case 0x000e:
             //  SHL v[x], v[y] set v[x] = v[x] shl 1
-            this.v[0xf] = +(this.v[this.x] & 0x80);
-            this.v[this.x] <<= 1;
-            if (this.v[this.x] > 255) {
-                this.v[this.x] -= 256;
-            }
+            this.v[0xf] = (this.v[this.x] & 0x80) >> 7;
+            this.v[this.x] = this.v[this.x] << 1;
             break;
         }
         break;
@@ -212,43 +190,33 @@ export default class Cpu {
         break;
       case 0xb000:
         // JP V0, nnn Bnnn jump to location v0 + nnn
-        this.pc = (this.nnn + this.v[0]);
+        this.pc = this.nnn + this.v[0];
         break;
       case 0xc000:
         // RND Vx, byte CXNN set Vx =  random byte & nnn
-        this.v[this.x] = Math.floor(Math.random() * 0xff) & this.nnn;
+        this.v[this.x] = this.rng() & this.nnn;
         break;
       case 0xd000:
         // DRW Vx, Vy, n DXYN display n-byte sprite at memory location i at (Vx, Vy),
         // set Vf = collison
-        this.v[0xf] = 0;
-        let height = this.n;
-        let vX = this.v[this.x];
-        let vY = this.v[this.y];
-        for (let y = 0; y < height; y++) {
-          let sprite = this.memory[this.i + y];
-          for (let x = 0; x < 8; x++) {
-            if ((sprite & 0x80) > 0) {
-              if (this.setPixel(vX + x, vY + y)) {
-                this.v[0xf] = 1;
-              }
-            }
-            sprite = sprite << 1;
-          }
-        }
+        this.v[0xf] = this.draw(
+          this.v[this.x],
+          this.v[this.y],
+          this.memory.slice(this.i, this.i + this.n)
+        )
         break;
         case 0xe000:
           switch(this.nn) {
             case 0x009e:
               // SKP Vx ex9e  skip next instruction if key with val of vx is pressed;
-              if (this.pressed(this.v[this.x])) {
-                this.pc += 4;
+              if (this.pressed().indexOf(this.v[this.x]) >= 0) {
+                this.pc += 2;
               }
               break;
             case 0x00a1:
               // SKNP Vx exa1 skip next instruction if key with val of Vx is not pressed
-              if (!this.pressed(this.v[this.x])) {
-                this.pc += 4;
+              if (!this.pressed().indexOf(this.v[this.x]) < 0) {
+                this.pc += 2;
               }
               break;
           }
@@ -261,7 +229,7 @@ export default class Cpu {
               break;
             case 0x000a:
               // LD Vx, k Fx0a wait for a keypress then store in Vx
-              this.paused = this.x
+              this.paused = this.x;
               break;
             case 0x0015:
               // LD DT, Vx fx15 set delayTimer = Vx
@@ -277,9 +245,12 @@ export default class Cpu {
               break;
             case 0x0033:
               // LD B, Vx Fx33 store bcd representation of Vx in memory[i];
-              this.memory[this.i] = parseInt(this.v[this.x] / 100);
-              this.memory[this.i + 1] = parseInt(this.v[this.x] % 100 / 10);
-              this.memory[this.i + 2] = this.v[this.x] % 10;
+              let start = this.v[this.x];
+              this.memory[this.i] = parseInt(start / 100);
+              start = start % 100;
+              this.memory[this.i + 1] = parseInt(start / 10);
+              start = start % 10;              
+              this.memory[this.i + 2] = start;
               break;
             case 0x0055:
               // LD [i], Vx Fx55 store all vReg in memory starting at i
@@ -295,41 +266,14 @@ export default class Cpu {
               break;
             case 0x001e:
               // ADD I, Vx fx1e set i = i + Vx
-              this.i += this.v[this.x];
+              // this.i += this.v[this.x];
+              this.i = this.uint12(this.i + this.v[this.x]);
               break;
           }
         break;
     }
-
+    // this.pc = this.uint12(this.pc);
   };
-
-  displayReset = () => {
-    for (let i = this.display.length; i >= 0; i--) {
-      this.display[i] = false;
-    }
-  }
-
-  inputReset = () => {
-    for (let i = 0; i < this.input.length; i++) {
-      this.input[i] = false;
-    }
-  }
-
-  keyInput = (document) => {
-    document.addEventListener('keydown', (e) => {
-      let index = this.keyMap[e.keycode];
-      if (typeof index != 'undefined') {
-        this.input[index] = true;
-      }
-    });
-    document.addEventListener('keyup', (e) => {
-      let index = this.keyMap[e.keycode];
-      if (typeof index != 'undefined') {
-        this.input[index] = false;
-      }     
-    });
-  }
-
   loadFont = () => {
     for (let i = 0; i < this.fontSet.length; i++) {
       this.memory[i] = this.fontSet[i];
@@ -344,13 +288,12 @@ export default class Cpu {
     }
     return pressed;
   }
-
   reset = () => {
     this.delayTimer = 0;
-    this.displayReset();
+    this.display = this.setArray(new Array(0x800), false);
+    this.input = this.setArray(new Array(16), false);
     this.i = 0;
-    this.inputReset();
-    this.memory = new Uint8Array(0x1000);
+    this.memory = new Uint8Array(this.memBuffer);
     this.pc = 0x200;
     this.soundTimer = 0;
     this.sp = 0;
@@ -366,27 +309,39 @@ export default class Cpu {
     }
     return array;
   };
-  setPixel = (x, y) => {
+  draw = (x, y, sprite) => {
+    let unset = false;
+    for (let i = 0; i < sprite.length; i++) {
+      let val = sprite[i];
+      unset |= this.setPixel(this.uint8(x + 0), this.uint8(y + i), (val & 0x80) > 0);
+      unset |= this.setPixel(this.uint8(x + 1), this.uint8(y + i), (val & 0x40) > 0);
+      unset |= this.setPixel(this.uint8(x + 2), this.uint8(y + i), (val & 0x20) > 0);
+      unset |= this.setPixel(this.uint8(x + 3), this.uint8(y + i), (val & 0x10) > 0);
+      unset |= this.setPixel(this.uint8(x + 4), this.uint8(y + i), (val & 0x08) > 0);
+      unset |= this.setPixel(this.uint8(x + 5), this.uint8(y + i), (val & 0x04) > 0);
+      unset |= this.setPixel(this.uint8(x + 6), this.uint8(y + i), (val & 0x02) > 0);
+      unset |= this.setPixel(this.uint8(x + 7), this.uint8(y + i), (val & 0x01) > 0);
+    }
+    return unset ? 1 : 0;
+  }
+  setPixel = (x, y, state) => {
     let width = this.displayWidth;
     let height = this.displayHeight;
 
     // wrap pixel around if it leaves border of screen;
-    if (x > width) {
-      x -= width;
-    } else if (x < 0) {
-      x += width;
+    if (x >= width || x < 0 || y >= height || y < 0) {
+      return;
     }
 
-    if (y > height) {
-      y -= height;
-    } else if (y < 0) {
-      y += height;
-    }
-
-    let location = x + (y * width);
-    this.display[location] ^= 1;
-    return !this.display[location];
+    let index = x + (y * width);
+    let original = this.display[index];
+    this.display[index] = original ^ state ? true : false;
+    return original && !this.display[location];
   };
-
-
+  uint8 = (val) => {
+    return val % 256;
+  }
+  uint12 = (val) => {
+    return val % 4096;
+  }
 };

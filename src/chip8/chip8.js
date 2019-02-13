@@ -1,9 +1,14 @@
-import Cpu from './cpu';
+import Cpu from "./cpu";
+import Display from "./display";
+import Input from "./input";
 export default class Chip8 {
   constructor() {
-    this.cpu = new Cpu()
+    this.cpu =  new Cpu();
+    this.display = new Display(document.querySelector("canvas"))
+    this.input = new Input();
     this.roms = [
     "15PUZZLE",
+    "BC_test",
     "BLINKY",
     "BLITZ",
     "BRIX",
@@ -28,7 +33,24 @@ export default class Chip8 {
     "VERS",
     "WIPEOFF"
     ]
+    this.document = document;
     this.romSelector = document.getElementById('rom_selector');
+  }
+  start = () => {
+    this.timerId = setInterval(() => {
+      for (let i = 0; i < 100; i++) {
+        this.cpu.run();
+      }
+      this.cpu.setInputState(this.input.getInputState())
+      this.display.draw(this.cpu.getDisplayBuffer());
+      //update cpu timers
+      this.cpu.updateTimers();
+    }, 16);
+  }
+  reset = () => {
+    clearInterval(this.timerId);
+    this.input.reset();
+    this.cpu.reset();
   }
 
   loadRom = async (name) => {
@@ -36,8 +58,7 @@ export default class Chip8 {
     .then(res => res.arrayBuffer())
     .then(data => {
       let rom = new Uint8Array(data);
-      return rom
-      // chip = this.cpu.loadRom(this.reset())
+      this.cpu.loadRom(rom)
     })
   }
   // populates the romSelector with roms

@@ -8,21 +8,21 @@
   <link rel="stylesheet" type="text/css" media="screen" href="main.css" />
 </head>
 <body>
-    <div class="container-narrow">
-      <div class="masthead">
-        <ul class="nav nav-pills pull-right">
-          <li><a href="https://github.com/reu/chip8.js">Source</a></li>
-          <li><a href="test/tests.html">Tests</a></li>
-          <li><a href="doc">Documentation</a></li>
-        </ul>
-        <h3 class="muted">chip8.js</h3>
-      </div>
-      <hr>
+  <div class="container-narrow">
+    <div class="masthead">
+      <ul class="nav nav-pills pull-right">
+        <li><a href="https://github.com/reu/chip8.js">Source</a></li>
+        <li><a href="test/tests.html">Tests</a></li>
+        <li><a href="doc">Documentation</a></li>
+      </ul>
+      <h3 class="muted">chip8.js</h3>
+    </div>
+    <hr>
 
-      <select id="rom_selector">
-        <option>Select a game</option>
-      </select>
-      <canvas></canvas>
+    <select id="rom_selector">
+      <option>Select a game</option>
+    </select>
+    <canvas id="canvas" height="320" width="640"></canvas>
   </div>
   <script src="./dist/bundle.js" async></script>
 </body>
