@@ -31,6 +31,7 @@ export default class Cpu {
     this.v = new Uint8Array(0x10);
     this.delayTimer = 0;
     this.soundTimer = 0;
+    this.randomNG = this.rng()
     this.stack = new Array(0x10);
     this.sp = 0;
     this.paused = -1;
@@ -50,7 +51,7 @@ export default class Cpu {
       }
       this.opcode = (this.memory[this.pc] << 8) | this.memory[this.pc + 1];
       this.cycle(this.opcode);
-      console.log((this.opcode).toString(16))
+      // console.log((this.opcode).toString(16))
       this.pc += 2;
   };
   getDisplayBuffer = () => {
@@ -62,6 +63,9 @@ export default class Cpu {
   updateTimers = () => {
     this.delayTimer = Math.max(0, this.delayTimer - 1);
     this.soundTimer = Math.max(0, this.soundTimer - 1);
+  }
+  rng = () => {
+    return new Uint8Array([Math.floor(Math.random() & 256)])[0]
   }
   cycle = (opcode) => {
     // get the 12 lowest bits of opcode
@@ -125,7 +129,7 @@ export default class Cpu {
         break;
       case 0x7000:
         // ADD v[x], Byte add nn + v[x] to v[x]
-        this.v[this.x] = this.v[this.x] + this.nn;
+        this.v[this.x] += this.nn;
         break;
       case 0x8000:
         switch (opcode & 0x000f) {
@@ -148,22 +152,13 @@ export default class Cpu {
           case 0x0004:
             // ADD v[x], v[y] 8xy4 v[x] + v[y] if result > 255 v[f] = 1 else 0
             // lowest 8-bits are then stored in v[x];
-            let sum = this.v[this.x] + this.v[this.y];
-            if (sum > 0xff) {
-              this.v[0xf] = 1;
-            } else {
-              this.v[0xf] = 0;
-            }
-            this.v[this.x] = sum;
+            this.v[0xf] = this.v[this.x] + this.v[this.y] > 255 ? 1 : 0;
+            this.v[this.x] += this.v[this.y];
             break;
           case 0x0005:
             // SUB v[x], v[y] 8xy5 v[x] = v[x] - v[y]
-            if (this.v[this.x] > this.v[this.y]) {
-              this.v[0xf] = 1;
-            } else {
-              this.v[0xf] = 0;
-            }
-            this.v[this.x] = this.v[this.x] - this.v[this.y];
+            this.v[0xf] = this.v[this.x] - this.v[this.y] < 0 ? 0 : 1;
+            this.v[this.x] -= this.v[this.x] >> 1;
             break;
           case 0x0006:
             // SHR v[x], v[y] 8xy6 divide v[x] \ 2
@@ -173,20 +168,13 @@ export default class Cpu {
             break;
           case 0x0007:
             // SUB v[x], v[y] 8xy7 v[x] = v[y] - v[x]
-            if (this.v[this.x] > this.v[this.y]) {
-              this.v[0xf] = 0;
-            } else {
-              this.v[0xf] = 1;
-            }
+            this.v[0xf] = this.v[this.y] - this.v[this.x] < 0 ? 0 : 1;
             this.v[this.x] = this.v[this.y] - this.v[this.x];
             break;
           case 0x000e:
             //  SHL v[x], v[y] set v[x] = v[x] shl 1
-            this.v[0xf] = +(this.v[this.x] & 0x80);
-            this.v[this.x] <<= 1;
-            if (this.v[this.x] > 255) {
-                this.v[this.x] -= 256;
-            }
+            this.v[0xf] = (this.v[this.x] & 0x80) >> 7;
+            this.v[this.x] = this.v[this.x] << 1;
             break;
         }
         break;
@@ -202,11 +190,11 @@ export default class Cpu {
         break;
       case 0xb000:
         // JP V0, nnn Bnnn jump to location v0 + nnn
-        this.pc = (this.nnn + this.v[0]);
+        this.pc = this.nnn + this.v[0];
         break;
       case 0xc000:
         // RND Vx, byte CXNN set Vx =  random byte & nnn
-        this.v[this.x] = Math.floor(Math.random() * 0xff) & this.nnn;
+        this.v[this.x] = this.rng() & this.nnn;
         break;
       case 0xd000:
         // DRW Vx, Vy, n DXYN display n-byte sprite at memory location i at (Vx, Vy),
@@ -257,9 +245,12 @@ export default class Cpu {
               break;
             case 0x0033:
               // LD B, Vx Fx33 store bcd representation of Vx in memory[i];
-              this.memory[this.i] = parseInt(this.v[this.x] / 100);
-              this.memory[this.i + 1] = parseInt(this.v[this.x] % 100 / 10);
-              this.memory[this.i + 2] = this.v[this.x] % 10;
+              let start = this.v[this.x];
+              this.memory[this.i] = parseInt(start / 100);
+              start = start % 100;
+              this.memory[this.i + 1] = parseInt(start / 10);
+              start = start % 10;              
+              this.memory[this.i + 2] = start;
               break;
             case 0x0055:
               // LD [i], Vx Fx55 store all vReg in memory starting at i
@@ -275,12 +266,13 @@ export default class Cpu {
               break;
             case 0x001e:
               // ADD I, Vx fx1e set i = i + Vx
-              this.i += this.v[this.x];
+              // this.i += this.v[this.x];
+              this.i = this.uint12(this.i + this.v[this.x]);
               break;
           }
         break;
     }
-
+    // this.pc = this.uint12(this.pc);
   };
   loadFont = () => {
     for (let i = 0; i < this.fontSet.length; i++) {
@@ -349,5 +341,7 @@ export default class Cpu {
   uint8 = (val) => {
     return val % 256;
   }
-
+  uint12 = (val) => {
+    return val % 4096;
+  }
 };

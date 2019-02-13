@@ -1,11 +1,14 @@
-
+import Cpu from "./cpu";
+import Display from "./display";
+import Input from "./input";
 export default class Chip8 {
-  constructor(cpu, display, input) {
-    this.cpu = cpu;
-    this.display = display;
-    this.input = input;
+  constructor() {
+    this.cpu =  new Cpu();
+    this.display = new Display(document.querySelector("canvas"))
+    this.input = new Input();
     this.roms = [
     "15PUZZLE",
+    "BC_test",
     "BLINKY",
     "BLITZ",
     "BRIX",

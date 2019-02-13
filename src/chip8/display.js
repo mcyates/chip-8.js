@@ -33,7 +33,7 @@ export default class Display {
 
     // clear screen
     ctx.fillStyle = this.getFillStyle(this.backColor);
-    ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    // ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
     // draw all pixels
     this.brightness.forEach(function(oldBrightness, i, array) {

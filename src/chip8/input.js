@@ -20,31 +20,27 @@ export default class Input {
     }
     this.input = new Array(16);
   }
-  onKeyUp = (e) => {
-      let index = this.keyMap[e.keycode];
+  onKeyUp(e) {
+      let index = this.keyMap[e.keyCode];
       console.log(e.keycode)
       if (typeof index != 'undefined') {
         this.input[index] = true;
       }
   };
-  onkeyDown = (e) => {
-      let index = this.keyMap[e.keycode];
+  onkeyDown(e) {
+      let index = this.keyMap[e.keyCode];
       if (typeof index != 'undefined') {
         this.input[index] = false;
       }     
-  };
-  keyInput = (document) => {
-    document.addEventListener('keydown', function(e) {
-      this.onKeyDown(e);
-    });
-    document.addEventListener('keyup', function(e) {
-      that.onKeyUp(e)
-    });  
   }
   reset = () => {
     for (let i = 0; i < this.input.length; i++) {
       this.input[i] = false;
     }
   }
-  getInputState = () => this.input;
+  getInputState = () => {
+   return this.input;
+  }
 }
+
+
